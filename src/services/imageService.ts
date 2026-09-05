@@ -2,7 +2,7 @@
 // EXIF extraction, GPS tagging, pHash duplicate detection, image compression
 
 import sharp from 'sharp';
-import * as exifReader from 'exif-reader';
+import exifReader from 'exif-reader';
 import { ImageAnalysisResult } from '../types';
 import prisma from '../utils/db';
 import fs from 'fs/promises';
@@ -141,22 +141,22 @@ export class ImageService {
 
       // Extract GPS
       let gps: { latitude: number; longitude: number; altitude?: number } | undefined;
-      if (exifData.GPS) {
+      if (exifData.GPSInfo) {
         const latitude = this.parseGPSCoordinate(
-          exifData.GPS.GPSLatitude as any,
-          exifData.GPS.GPSLatitudeRef as string
+          exifData.GPSInfo.GPSLatitude as any,
+          exifData.GPSInfo.GPSLatitudeRef as string
         );
         const longitude = this.parseGPSCoordinate(
-          exifData.GPS.GPSLongitude as any,
-          exifData.GPS.GPSLongitudeRef as string
+          exifData.GPSInfo.GPSLongitude as any,
+          exifData.GPSInfo.GPSLongitudeRef as string
         );
 
         if (latitude !== null && longitude !== null) {
           gps = { latitude, longitude };
 
           // Altitude (optional)
-          if (exifData.GPS.GPSAltitude) {
-            gps.altitude = Number(exifData.GPS.GPSAltitude);
+          if (exifData.GPSInfo.GPSAltitude) {
+            gps.altitude = Number(exifData.GPSInfo.GPSAltitude);
           }
         }
       }

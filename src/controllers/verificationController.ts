@@ -43,7 +43,7 @@ export class VerificationController {
         metadata: {
           workerPhone: input.workerPhone,
           clientPhone: input.clientPhone,
-          skills: input.extractedSkills,
+          skills: JSON.parse(JSON.stringify(input.extractedSkills)),
           timestamp: new Date().toISOString(),
         },
       });
@@ -55,7 +55,7 @@ export class VerificationController {
         metadata: {
           workerPhone: input.workerPhone,
           clientPhone: input.clientPhone,
-          skills: input.extractedSkills,
+          skills: JSON.parse(JSON.stringify(input.extractedSkills)),
           timestamp: new Date().toISOString(),
         },
       });
@@ -77,11 +77,10 @@ export class VerificationController {
           workerId: worker.id,
           audioUrl: input.audioUrl,
           audioHash,
-          skills: input.extractedSkills,
+          skills: JSON.parse(JSON.stringify(input.extractedSkills)),
           clientPhone: input.clientPhone,
           sha256Hash,
           verificationStatus: VerificationStatus.PENDING,
-          metadata: input.metadata || {},
         },
       });
 
