@@ -1,0 +1,333 @@
+{
+  "info": {
+    "name": "Skillproof Verification API",
+    "description": "Person 2: Verification & Cryptographic Vault - Complete API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "workerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "recordId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "hash",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Info",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "API Documentation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verification",
+      "item": [
+        {
+          "name": "Create Verification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('recordId', response.recordId);",
+                  "    pm.collectionVariables.set('hash', response.sha256Hash);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workerPhone\": \"+256700000001\",\n  \"audioUrl\": \"https://example.com/audio/story1.mp3\",\n  \"extractedSkills\": [\n    {\n      \"skillName\": \"Basket Weaving\",\n      \"category\": \"Handicrafts\",\n      \"level\": \"advanced\",\n      \"yearsExperience\": 5\n    }\n  ],\n  \"clientPhone\": \"+256700000100\",\n  \"photos\": [\n    \"https://example.com/photos/basket1.jpg\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/verify/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verify", "create"]
+            }
+          }
+        },
+        {
+          "name": "Verify Hash",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/verify/{{hash}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verify", "{{hash}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Verification by Record ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/verify/record/{{recordId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verify", "record", "{{recordId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SMS Verification",
+      "item": [
+        {
+          "name": "Send Verification SMS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recordId\": \"{{recordId}}\",\n  \"clientPhone\": \"+256700000100\",\n  \"workerName\": \"Amina Nakato\",\n  \"skillSummary\": \"basket weaving\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/verify/sms",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verify", "sms"]
+            }
+          }
+        },
+        {
+          "name": "Get Verification Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/verify/sms/{{recordId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verify", "sms", "{{recordId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Get Verification History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/verify/sms/{{recordId}}/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verify", "sms", "{{recordId}}", "history"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Image Processing",
+      "item": [
+        {
+          "name": "Process Photo Evidence",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"photoUrl\": \"https://example.com/photo.jpg\",\n  \"recordId\": \"{{recordId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/image/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "image", "process"]
+            }
+          }
+        },
+        {
+          "name": "Get Photo Evidence",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/image/record/{{recordId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "image", "record", "{{recordId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Fraud Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/image/fraud-stats/{{workerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "image", "fraud-stats", "{{workerId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workers",
+      "item": [
+        {
+          "name": "Create Worker",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('workerId', response.worker.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+256700000001\",\n  \"name\": \"Amina Nakato\",\n  \"email\": \"amina@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workers"]
+            }
+          }
+        },
+        {
+          "name": "Get Worker Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workers/{{workerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workers", "{{workerId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Worker by Phone",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workers/phone/+256700000001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workers", "phone", "+256700000001"]
+            }
+          }
+        },
+        {
+          "name": "Get Worker Records",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workers/{{workerId}}/records?limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workers", "{{workerId}}", "records"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Trust Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workers/{{workerId}}/trust",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workers", "{{workerId}}", "trust"]
+            }
+          }
+        },
+        {
+          "name": "Get FinTech Handoff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workers/{{workerId}}/fintech-handoff",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workers", "{{workerId}}", "fintech-handoff"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,239 @@
+// Skillproof Database Schema - Person 2: Verification & Trust Infrastructure
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Worker Profile (Skill Passport Owner)
+model Worker {
+  id            String   @id @default(uuid())
+  phone         String   @unique
+  name          String?
+  email         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  skillRecords  SkillRecord[]
+  trustMetrics  TrustMetrics?
+  
+  @@index([phone])
+}
+
+// Individual Skill Record (One story/submission)
+model SkillRecord {
+  id                String   @id @default(uuid())
+  workerId          String
+  worker            Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  
+  // Audio Evidence
+  audioUrl          String
+  audioHash         String   // Individual audio file hash
+  transcription     String?  @db.Text
+  
+  // Extracted Skills (JSON array)
+  skills            Json     // Array of ExtractedSkill objects
+  
+  // Client Information
+  clientPhone       String?
+  clientName        String?
+  
+  // Verification Status
+  verificationStatus String  @default("pending") // pending, verified, failed, expired
+  
+  // SHA-256 Cryptographic Hash (IMMUTABLE PROOF)
+  sha256Hash        String   @unique
+  
+  // Timestamps
+  recordedAt        DateTime @default(now())
+  verifiedAt        DateTime?
+  expiresAt         DateTime?
+  
+  // Relations
+  photoEvidence     PhotoEvidence[]
+  smsVerifications  SMSVerification[]
+  hashLedger        HashLedger?
+  
+  @@index([workerId])
+  @@index([sha256Hash])
+  @@index([verificationStatus])
+  @@index([recordedAt])
+}
+
+// Photo Evidence with EXIF & Forensics
+model PhotoEvidence {
+  id              String   @id @default(uuid())
+  recordId        String
+  record          SkillRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  
+  // Photo Storage
+  photoUrl        String
+  thumbnailUrl    String?
+  compressedUrl   String?
+  
+  // EXIF Metadata
+  hasEXIF         Boolean  @default(false)
+  cameraMake      String?
+  cameraModel     String?
+  capturedAt      DateTime?
+  
+  // GPS Data
+  latitude        Float?
+  longitude       Float?
+  altitude        Float?
+  
+  // Image Properties
+  width           Int?
+  height          Int?
+  fileSize        Int?
+  mimeType        String?
+  
+  // Perceptual Hash (Duplicate Detection)
+  pHash           String?
+  
+  // Forensic Flags
+  isDuplicate     Boolean  @default(false)
+  duplicateOf     String?
+  fraudFlags      String[] // Array of fraud indicators
+  validityScore   Float    @default(1.0) // 0.0 to 1.0
+  
+  // Timestamps
+  uploadedAt      DateTime @default(now())
+  analyzedAt      DateTime?
+  
+  @@index([recordId])
+  @@index([pHash])
+  @@index([isDuplicate])
+}
+
+// SMS Verification Log (Customer Triangulation)
+model SMSVerification {
+  id              String   @id @default(uuid())
+  recordId        String
+  record          SkillRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  
+  // SMS Details
+  clientPhone     String
+  messageId       String?  // Africa's Talking message ID
+  messageContent  String   @db.Text
+  
+  // Verification Status
+  status          String   @default("sent") // sent, delivered, confirmed, denied, expired
+  confirmationCode String? // PIN or verification code
+  
+  // Response
+  clientResponse  String?
+  responseMethod  String?  // sms, ussd, call
+  
+  // Timestamps
+  sentAt          DateTime @default(now())
+  deliveredAt     DateTime?
+  respondedAt     DateTime?
+  expiresAt       DateTime?
+  
+  @@index([recordId])
+  @@index([clientPhone])
+  @@index([status])
+}
+
+// SHA-256 Hash Ledger (Immutable Cryptographic Record)
+model HashLedger {
+  id              String   @id @default(uuid())
+  recordId        String   @unique
+  record          SkillRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  
+  // Cryptographic Hash
+  sha256Hash      String   @unique
+  
+  // Hash Input Components
+  audioHash       String
+  photosHash      String?
+  metadataHash    String
+  
+  // Hash Metadata
+  algorithm       String   @default("sha256")
+  salt            String?
+  
+  // QR Code
+  qrCodeUrl       String?  // Public URL to QR code image
+  qrCodeData      String?  @db.Text // Base64 QR code data
+  
+  // Verification URL
+  verificationUrl String   // Public URL: /api/verify/:hash
+  
+  // Immutability
+  createdAt       DateTime @default(now())
+  accessCount     Int      @default(0) // Track QR scans
+  lastAccessedAt  DateTime?
+  
+  @@index([sha256Hash])
+}
+
+// Trust Metrics (Aggregate per Worker)
+model TrustMetrics {
+  id                    String   @id @default(uuid())
+  workerId              String   @unique
+  worker                Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  
+  // Volume Metrics
+  totalRecords          Int      @default(0)
+  verifiedRecords       Int      @default(0)
+  pendingRecords        Int      @default(0)
+  failedRecords         Int      @default(0)
+  
+  // Verification Ratios
+  verificationRatio     Float    @default(0.0) // verified / total
+  smsConfirmationRatio  Float    @default(0.0)
+  photoValidityAvg      Float    @default(0.0)
+  
+  // Trust Tier
+  trustTier             String   @default("none") // none, bronze, silver, gold
+  trustScore            Float    @default(0.0)    // 0.0 to 100.0
+  
+  // Credit Readiness Contribution (for P4)
+  volumeScore           Float    @default(0.0)    // 30% weight
+  verificationScore     Float    @default(0.0)    // 35% weight
+  validityScore         Float    @default(0.0)    // 20% weight
+  repeatClientScore     Float    @default(0.0)    // 15% weight
+  
+  // Fraud Indicators
+  fraudFlagCount        Int      @default(0)
+  duplicatePhotoCount   Int      @default(0)
+  suspiciousPatterns    String[]
+  
+  // Timestamps
+  lastCalculated        DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([workerId])
+  @@index([trustTier])
+  @@index([trustScore])
+}
+
+// Client Confirmation Records
+model ClientConfirmation {
+  id              String   @id @default(uuid())
+  clientPhone     String
+  workerPhone     String
+  
+  // Confirmation Details
+  confirmationType String  // sms, call, ussd
+  confirmed       Boolean  @default(false)
+  rating          Int?     // 1-5 stars
+  feedback        String?  @db.Text
+  
+  // Related Records
+  relatedRecordIds String[] // Can confirm multiple records at once
+  
+  // Timestamps
+  confirmedAt     DateTime @default(now())
+  
+  @@index([clientPhone])
+  @@index([workerPhone])
+  @@index([confirmed])
+}
