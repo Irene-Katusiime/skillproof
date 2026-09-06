@@ -6,7 +6,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
 
-    "rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
 
     "strict": true,
@@ -30,7 +30,11 @@
     "noFallthroughCasesInSwitch": true
   },
 
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*",
+    "backend/src/**/*"
+  ],
+
   "exclude": [
     "node_modules",
     "dist",

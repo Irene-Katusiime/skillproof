@@ -79,11 +79,11 @@ export default function Projects() {
 
             {!project.confirmed && project.clientContact && (
               <Link
-                to={`/endorse?projectId=${project.id}`}
-                className="block text-center text-xs font-semibold text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl py-2 transition-colors"
-              >
-                Request client confirmation →
-              </Link>
+  to="/endorse"
+  className="block text-center text-xs font-semibold text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl py-2 transition-colors"
+>
+  Generate client confirmation link →
+</Link>
             )}
           </div>
         ))}

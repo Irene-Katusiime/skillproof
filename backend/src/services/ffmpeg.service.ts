@@ -13,7 +13,7 @@ export const processAudioWithFFmpeg = (inputPath: string): Promise<string> => {
       .audioChannels(1)
       .audioFrequency(16000)
       .on('end', () => resolve(outputPath))
-      .on('error', (err) => reject(err))
+      .on('error', (err: Error) => reject(err))
       .save(outputPath);
   });
 };

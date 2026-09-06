@@ -1,91 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Zap, Check, Plus, X, ArrowRight, Sparkles } from 'lucide-react'
-import { useApp } from '../../context/AppContext'
+import { Check, Plus, Sparkles } from 'lucide-react'
 import OnboardingShell from './OnboardingShell'
-import type { SkillLevel } from '../../types'
+import { useApp } from '../../context/AppContext'
 
-// Simulated AI: maps keywords in story to skill suggestions
-function extractSkills(story: string, profession: string): AISkill[] {
-  const text = (story + ' ' + profession).toLowerCase()
-
-  const allSkills: Record<string, AISkill[]> = {
-    tailor: [
-      { name: 'Custom Tailoring',    category: 'Clothing',  level: 'Advanced', confidence: 95 },
-      { name: 'Pattern Making',       category: 'Technical', level: 'Intermediate', confidence: 88 },
-      { name: 'Bridal Wear',          category: 'Specialty', level: 'Intermediate', confidence: 78 },
-      { name: 'African Print Design', category: 'Fashion',   level: 'Advanced', confidence: 82 },
-      { name: 'Fabric Selection',     category: 'Technical', level: 'Intermediate', confidence: 72 },
-    ],
-    fashion: [
-      { name: 'Fashion Design',       category: 'Creative',  level: 'Advanced', confidence: 90 },
-      { name: 'Garment Construction', category: 'Clothing',  level: 'Advanced', confidence: 87 },
-      { name: 'Trend Analysis',        category: 'Creative', level: 'Intermediate', confidence: 70 },
-    ],
-    mechanic: [
-      { name: 'Engine Repair',        category: 'Mechanical', level: 'Advanced', confidence: 94 },
-      { name: 'Vehicle Diagnostics',  category: 'Technical',  level: 'Advanced', confidence: 90 },
-      { name: 'Brake Systems',        category: 'Mechanical', level: 'Intermediate', confidence: 83 },
-      { name: 'Electrical Systems',   category: 'Technical',  level: 'Intermediate', confidence: 75 },
-    ],
-    electric: [
-      { name: 'Electrical Wiring',    category: 'Technical',  level: 'Advanced', confidence: 93 },
-      { name: 'Solar Installation',   category: 'Renewable',  level: 'Intermediate', confidence: 80 },
-      { name: 'Circuit Fault Finding',category: 'Technical',  level: 'Advanced', confidence: 88 },
-    ],
-    plumb: [
-      { name: 'Pipe Installation',    category: 'Plumbing',   level: 'Advanced', confidence: 91 },
-      { name: 'Drain Repair',         category: 'Plumbing',   level: 'Intermediate', confidence: 85 },
-      { name: 'Bathroom Fitting',     category: 'Plumbing',   level: 'Advanced', confidence: 82 },
-    ],
-    build: [
-      { name: 'Masonry',             category: 'Construction', level: 'Advanced', confidence: 90 },
-      { name: 'Concrete Work',        category: 'Construction', level: 'Advanced', confidence: 87 },
-      { name: 'Site Management',      category: 'Management',   level: 'Intermediate', confidence: 74 },
-    ],
-    carpenter: [
-      { name: 'Furniture Making',     category: 'Carpentry',  level: 'Advanced', confidence: 92 },
-      { name: 'Wood Joinery',         category: 'Technical',  level: 'Advanced', confidence: 88 },
-      { name: 'Cabinet Installation', category: 'Carpentry',  level: 'Intermediate', confidence: 80 },
-    ],
-    hair: [
-      { name: 'Hair Braiding',        category: 'Beauty',     level: 'Expert', confidence: 96 },
-      { name: 'Hair Relaxing',        category: 'Beauty',     level: 'Advanced', confidence: 88 },
-      { name: 'Natural Hair Care',    category: 'Beauty',     level: 'Advanced', confidence: 84 },
-    ],
-    cook: [
-      { name: 'Meal Preparation',     category: 'Culinary',   level: 'Advanced', confidence: 90 },
-      { name: 'Menu Planning',        category: 'Culinary',   level: 'Intermediate', confidence: 78 },
-      { name: 'Food Safety',          category: 'Technical',  level: 'Intermediate', confidence: 75 },
-    ],
-    farm: [
-      { name: 'Crop Management',      category: 'Agriculture', level: 'Advanced', confidence: 89 },
-      { name: 'Soil Preparation',     category: 'Agriculture', level: 'Advanced', confidence: 86 },
-      { name: 'Pest Control',         category: 'Agriculture', level: 'Intermediate', confidence: 76 },
-    ],
-  }
-
-  const found: AISkill[] = []
-  Object.entries(allSkills).forEach(([keyword, skills]) => {
-    if (text.includes(keyword)) {
-      skills.forEach(s => {
-        if (!found.find(f => f.name === s.name)) found.push(s)
-      })
-    }
-  })
-
-  // Always return at least 3 generic skills based on common words
-  if (found.length < 3) {
-    const extras: AISkill[] = [
-      { name: 'Client Communication', category: 'Soft Skills', level: 'Intermediate', confidence: 70 },
-      { name: 'Time Management',       category: 'Soft Skills', level: 'Intermediate', confidence: 68 },
-      { name: 'Quality Control',       category: 'Technical',   level: 'Intermediate', confidence: 72 },
-    ]
-    extras.forEach(e => { if (!found.find(f => f.name === e.name)) found.push(e) })
-  }
-
-  return found.slice(0, 7).sort((a, b) => b.confidence - a.confidence)
-}
+type SkillLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert'
 
 interface AISkill {
   name: string
@@ -94,138 +13,327 @@ interface AISkill {
   confidence: number
 }
 
+interface VoiceExtraction {
+  primaryTrade?: string
+  specificSkills?: string[] | string
+  estimatedJobValueUGX?: number
+  clientPhoneNumber?: string
+  vvdScore?: number
+}
+
+function normalizeSkills(extraction: VoiceExtraction): AISkill[] {
+  const trade = extraction.primaryTrade?.trim() || ''
+
+  let rawSkills: string[] = []
+
+  if (Array.isArray(extraction.specificSkills)) {
+    rawSkills = extraction.specificSkills
+  } else if (typeof extraction.specificSkills === 'string') {
+    rawSkills = extraction.specificSkills
+      .split(',')
+      .map(skill => skill.trim())
+      .filter(Boolean)
+  }
+
+  const uniqueSkills = Array.from(
+    new Set(
+      rawSkills
+        .map(skill => skill.trim())
+        .filter(Boolean)
+    )
+  )
+
+  const confidence = Math.max(
+    0,
+    Math.min(100, Number(extraction.vvdScore ?? 75))
+  )
+
+  const tradeSkill: AISkill[] = trade
+    ? [
+        {
+          name: trade,
+          category: 'Primary Trade',
+          level: confidence >= 90
+            ? 'Advanced'
+            : confidence >= 75
+              ? 'Intermediate'
+              : 'Beginner',
+          confidence,
+        },
+      ]
+    : []
+
+  const specific: AISkill[] = uniqueSkills.map(skill => ({
+    name: skill,
+    category: 'Identified Skill',
+    level:
+      confidence >= 90
+        ? 'Advanced'
+        : confidence >= 75
+          ? 'Intermediate'
+          : 'Beginner',
+    confidence,
+  }))
+
+  return [...tradeSkill, ...specific]
+}
+
 export default function AISkills() {
   const { profile, addSkill } = useApp()
   const navigate = useNavigate()
+
   const [scanning, setScanning] = useState(true)
   const [suggestedSkills, setSuggestedSkills] = useState<AISkill[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [customSkill, setCustomSkill] = useState('')
+  const [trade, setTrade] = useState('')
+  const [extraction, setExtraction] = useState<VoiceExtraction | null>(null)
 
   useEffect(() => {
-    const story = sessionStorage.getItem('sp_onboarding_story') || profile.bio
-    // Simulate AI scanning delay
-    const timer = setTimeout(() => {
-      const skills = extractSkills(story, profile.profession)
-      setSuggestedSkills(skills)
-      setSelected(new Set(skills.map(s => s.name)))
+    const storedExtraction = sessionStorage.getItem('sp_voice_extraction')
+
+    if (storedExtraction) {
+      try {
+        const parsed: VoiceExtraction = JSON.parse(storedExtraction)
+
+        console.log('AI extraction received:', parsed)
+
+        const skills = normalizeSkills(parsed)
+
+        setExtraction(parsed)
+        setTrade(parsed.primaryTrade || '')
+        setSuggestedSkills(skills)
+        setSelected(new Set(skills.map(skill => skill.name)))
+      } catch (error) {
+        console.error('Could not parse AI extraction:', error)
+      }
+    }
+
+    // Fallback for users who typed their story instead of using voice.
+    if (!storedExtraction) {
+      const story =
+        sessionStorage.getItem('sp_onboarding_story') ||
+        profile.bio ||
+        ''
+
+      console.log('No voice extraction found. Story:', story)
+    }
+
+    setTimeout(() => {
       setScanning(false)
-    }, 2200)
-    return () => clearTimeout(timer)
-  }, [profile.bio, profile.profession])
+    }, 800)
+  }, [profile.bio])
 
   const toggle = (name: string) => {
     setSelected(prev => {
       const next = new Set(prev)
-      next.has(name) ? next.delete(name) : next.add(name)
+
+      if (next.has(name)) {
+        next.delete(name)
+      } else {
+        next.add(name)
+      }
+
       return next
     })
   }
 
   const addCustom = () => {
-    if (!customSkill.trim()) return
-    const skill: AISkill = { name: customSkill.trim(), category: 'Other', level: 'Intermediate', confidence: 100 }
+    const name = customSkill.trim()
+
+    if (!name) return
+
+    const skill: AISkill = {
+      name,
+      category: 'Other',
+      level: 'Intermediate',
+      confidence: 100,
+    }
+
     setSuggestedSkills(prev => [...prev, skill])
-    setSelected(prev => new Set([...prev, skill.name]))
+    setSelected(prev => new Set([...prev, name]))
     setCustomSkill('')
   }
 
   const handleContinue = () => {
-    const toAdd = suggestedSkills.filter(s => selected.has(s.name))
-    toAdd.forEach(s => addSkill({ name: s.name, category: s.category, level: s.level, yearsOfExperience: 1 }))
+    const toAdd = suggestedSkills.filter(skill =>
+      selected.has(skill.name)
+    )
+
+    toAdd.forEach(skill => {
+      addSkill({
+        name: skill.name,
+        category: skill.category,
+        level: skill.level,
+        yearsOfExperience: 1,
+      })
+    })
+
     navigate('/onboarding/prove')
   }
 
-  const confidenceColor = (c: number) =>
-    c >= 90 ? 'text-green-600 bg-green-50' : c >= 75 ? 'text-blue-600 bg-blue-50' : 'text-gray-500 bg-gray-50'
+  const confidenceColor = (confidence: number) => {
+    if (confidence >= 90) {
+      return 'text-green-600 bg-green-50'
+    }
+
+    if (confidence >= 75) {
+      return 'text-blue-600 bg-blue-50'
+    }
+
+    return 'text-gray-500 bg-gray-50'
+  }
 
   return (
     <OnboardingShell
       step={2}
       title="AI Identified Your Skills"
-      subtitle="Based on your story, here are the skills we found. Select the ones that apply, and add any we missed."
+      subtitle="Based on your story, here are the skills our AI identified. Select the ones that apply, and add any we missed."
     >
       {scanning ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-5">
-          <div className="relative">
-            <div className="w-20 h-20 rounded-full border-4 border-violet-200 border-t-violet-500 animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Zap size={28} className="text-violet-500" />
-            </div>
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
+            <Sparkles className="h-8 w-8 animate-pulse text-blue-600" />
           </div>
-          <div className="text-center">
-            <p className="font-bold text-gray-800">AI is reading your story…</p>
-            <p className="text-sm text-gray-500 mt-1">Identifying skills from your experience</p>
-          </div>
-          <div className="flex gap-1.5 mt-2">
-            {['Analysing text', 'Matching skills', 'Ranking confidence'].map((label, i) => (
-              <span key={label} className="text-xs bg-violet-100 text-violet-600 px-3 py-1 rounded-full animate-pulse"
-                style={{ animationDelay: `${i * 0.3}s` }}>{label}</span>
-            ))}
-          </div>
+
+          <h3 className="text-lg font-semibold text-gray-900">
+            Analyzing your story...
+          </h3>
+
+          <p className="mt-2 text-sm text-gray-500">
+            Our AI is identifying your actual skills and experience.
+          </p>
         </div>
       ) : (
         <div className="space-y-5">
-          <div className="flex items-center gap-2 text-sm text-violet-700 bg-violet-50 rounded-xl px-4 py-2.5">
-            <Sparkles size={16} className="shrink-0" />
-            <span>AI found <strong>{suggestedSkills.length} skills</strong> in your story. Select the ones that match your experience.</span>
-          </div>
 
-          {/* Skill chips */}
-          <div className="space-y-2.5">
-            {suggestedSkills.map(skill => {
-              const isSelected = selected.has(skill.name)
-              return (
-                <button
-                  key={skill.name}
-                  onClick={() => toggle(skill.name)}
-                  className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all ${
-                    isSelected
-                      ? 'border-orange-400 bg-orange-50'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
-                  }`}
-                >
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                    isSelected ? 'bg-orange-500 border-orange-500' : 'border-gray-300'
-                  }`}>
-                    {isSelected && <Check size={13} className="text-white" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-semibold text-sm ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>{skill.name}</p>
-                    <p className="text-xs text-gray-400">{skill.category} · {skill.level}</p>
-                  </div>
-                  <span className={`text-xs font-bold px-2 py-1 rounded-lg shrink-0 ${confidenceColor(skill.confidence)}`}>
-                    {skill.confidence}% match
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+          {trade && (
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-blue-600">
+                Primary Trade
+              </p>
 
-          {/* Add custom skill */}
-          <div>
-            <label className="label">Add a skill we missed</label>
-            <div className="flex gap-2">
+              <p className="mt-1 text-lg font-semibold text-blue-900">
+                {trade}
+              </p>
+            </div>
+          )}
+
+          {suggestedSkills.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center">
+              <Sparkles className="mx-auto h-8 w-8 text-gray-400" />
+
+              <h3 className="mt-3 font-semibold text-gray-900">
+                No specific skills identified yet
+              </h3>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Add your skills below and we will use them in your SkillProof profile.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {suggestedSkills.map(skill => {
+                const isSelected = selected.has(skill.name)
+
+                return (
+                  <button
+                    key={skill.name}
+                    type="button"
+                    onClick={() => toggle(skill.name)}
+                    className={`flex w-full items-center gap-4 rounded-xl border p-4 text-left transition ${
+                      isSelected
+                        ? 'border-blue-300 bg-blue-50'
+                        : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <div
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${
+                        isSelected
+                          ? 'border-blue-600 bg-blue-600 text-white'
+                          : 'border-gray-300 bg-white'
+                      }`}
+                    >
+                      {isSelected && <Check className="h-4 w-4" />}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900">
+                        {skill.name}
+                      </p>
+
+                      <p className="mt-1 text-xs text-gray-500">
+                        {skill.category} • {skill.level}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${confidenceColor(
+                        skill.confidence
+                      )}`}
+                    >
+                      {skill.confidence}%
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {extraction?.estimatedJobValueUGX ? (
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs text-gray-500">
+                Estimated typical job value
+              </p>
+
+              <p className="mt-1 font-semibold text-gray-900">
+                UGX{' '}
+                {Number(
+                  extraction.estimatedJobValueUGX
+                ).toLocaleString()}
+              </p>
+            </div>
+          ) : null}
+
+          <div className="rounded-xl border border-gray-200 p-4">
+            <label className="text-sm font-medium text-gray-700">
+              Add another skill
+            </label>
+
+            <div className="mt-2 flex gap-2">
               <input
-                className="input flex-1"
-                placeholder="e.g. Machine Embroidery"
+                type="text"
                 value={customSkill}
-                onChange={e => setCustomSkill(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addCustom()}
+                onChange={event =>
+                  setCustomSkill(event.target.value)
+                }
+                onKeyDown={event => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    addCustom()
+                  }
+                }}
+                placeholder="e.g. Welding"
+                className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
               />
-              <button onClick={addCustom} disabled={!customSkill.trim()}
-                className="btn-secondary px-4 py-2.5 flex items-center gap-1 disabled:opacity-40">
-                <Plus size={16} /> Add
+
+              <button
+                type="button"
+                onClick={addCustom}
+                className="flex items-center gap-1 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white"
+              >
+                <Plus className="h-4 w-4" />
+                Add
               </button>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={handleContinue}
-            disabled={selected.size === 0}
-            className="btn-primary w-full py-3.5 text-base flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full rounded-xl bg-blue-600 py-3.5 font-semibold text-white transition hover:bg-blue-700"
           >
-            Prove These Skills ({selected.size}) <ArrowRight size={18} />
+            Continue
           </button>
         </div>
       )}

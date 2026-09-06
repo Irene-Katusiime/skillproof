@@ -4,7 +4,7 @@ import { ChevronDown, LogOut, UserPlus } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 
 export default function UserMenu() {
-  const { profile, allWorkers, logout, currentUserId } = useApp()
+  const { profile, logout } = useApp()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -17,12 +17,6 @@ export default function UserMenu() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
-
-  const handleSwitch = () => {
-    logout()
-    setOpen(false)
-    navigate('/login')
-  }
 
   const handleLogout = () => {
     logout()
@@ -59,30 +53,6 @@ export default function UserMenu() {
             <p className="font-bold text-sm text-gray-800 mt-0.5 truncate">{profile.name}</p>
             <p className="text-xs text-gray-500 truncate">{profile.profession}</p>
           </div>
-
-          {/* Switch accounts */}
-          {allWorkers.length > 1 && (
-            <div className="py-2 border-b border-gray-100">
-              <p className="px-4 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Switch account</p>
-              {allWorkers
-                .filter(w => w.id !== currentUserId)
-                .map(worker => (
-                  <button
-                    key={worker.id}
-                    onClick={handleSwitch}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600 shrink-0">
-                      {worker.name.charAt(0)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-700 truncate">{worker.name}</p>
-                      <p className="text-xs text-gray-400 truncate">{worker.profession}</p>
-                    </div>
-                  </button>
-                ))}
-            </div>
-          )}
 
           {/* Actions */}
           <div className="py-2">

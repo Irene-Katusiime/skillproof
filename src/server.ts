@@ -1,10 +1,15 @@
 // Main Express Server
 import express, { Application } from 'express';
+import path from 'path';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { checkDatabaseConnection, disconnectDatabase } from './utils/db';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 import { requestLogger } from './middlewares/logger';
+import ingestRoutes from '../backend/src/routes/ingest.routes';
+import quizRoutes from '../backend/src/routes/quiz.routes';
+import opportunitiesRoutes from '../backend/src/routes/opportunities';
+import projectConfirmationRoutes from '../backend/src/routes/projectConfirmation.routes';
 
 // Import routes
 import verificationRoutes from './routes/verificationRoutes';
@@ -17,11 +22,14 @@ dotenv.config();
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
+const uploadsPath = path.resolve(process.cwd(), 'uploads');
 
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Serve uploaded audio/images
+app.use('/uploads', express.static(uploadsPath));
 
 // Request logging (only in development)
 if (process.env.NODE_ENV === 'development') {
@@ -43,6 +51,10 @@ app.use('/api/verify', verificationRoutes);
 app.use('/api/image', imageRoutes);
 app.use('/api/qr', qrRoutes);
 app.use('/api/workers', workerRoutes);
+app.use('/api/ingest', ingestRoutes);
+app.use('/api/quiz', quizRoutes);
+app.use('/api/opportunities', opportunitiesRoutes);
+app.use('/api', projectConfirmationRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

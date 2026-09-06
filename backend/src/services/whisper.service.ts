@@ -3,16 +3,23 @@ import { groq } from '../config/groq';
 
 export const transcribeAudio = async (filePath: string): Promise<string> => {
   try {
+    console.log('🎙️ Transcribing:', filePath);
+
     const fileStream = fs.createReadStream(filePath);
 
     const response = await groq.audio.transcriptions.create({
       file: fileStream,
-      model: 'whisper-large-v3-turbo',
+      model: 'whisper-large-v3',
+      language: 'en',
       response_format: 'text',
-      temperature: 0.0,
+      temperature: 0,
     });
 
-    return typeof response === 'string' ? response : (response as any).text;
+    console.log('📝 Whisper response:', response);
+
+    return typeof response === 'string'
+      ? response
+      : (response as any).text;
   } catch (error: any) {
     console.error('Whisper Service Error:', error);
     throw new Error(`Whisper Transcription Error: ${error.message}`);

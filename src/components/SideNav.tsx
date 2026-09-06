@@ -1,21 +1,19 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Award, Briefcase, UserCheck, Mic2, LogOut, UserPlus, ChevronDown, Globe } from 'lucide-react'
-import { useState } from 'react'
+import { Home, Award, Briefcase, UserCheck, Mic2, LogOut, Globe } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 
 const navItems = [
   { to: '/dashboard', icon: Home,      label: 'Dashboard' },
   { to: '/passport',  icon: Award,     label: 'Skill Passport' },
   { to: '/projects',  icon: Briefcase, label: 'Projects' },
-  { to: '/discover',  icon: Globe,     label: 'Discover Talent' },
-  { to: '/endorse',   icon: UserCheck, label: 'Endorsements' },
+  { to: '/opportunities', icon: Globe, label: 'Find Opportunities' },
+  { to: '/endorse',   icon: UserCheck, label: 'Project Confirmations' },
   { to: '/pitch',     icon: Mic2,      label: 'About SkillProof' },
 ]
 
 export default function SideNav() {
-  const { profile, allWorkers, logout, currentUserId } = useApp()
+  const { profile, logout } = useApp()
   const navigate = useNavigate()
-  const [switcherOpen, setSwitcherOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -62,49 +60,6 @@ export default function SideNav() {
 
       {/* User section */}
       <div className="border-t border-gray-100 p-3">
-        {/* Switcher */}
-        <button
-          onClick={() => setSwitcherOpen(o => !o)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-base font-bold text-orange-600 shrink-0">
-            {profile.name.charAt(0)}
-          </div>
-          <div className="flex-1 min-w-0 text-left">
-            <p className="text-sm font-semibold text-gray-800 truncate">{profile.name.split(' ')[0]}</p>
-            <p className="text-xs text-gray-400 truncate">{profile.profession}</p>
-          </div>
-          <ChevronDown size={15} className={`text-gray-400 transition-transform ${switcherOpen ? 'rotate-180' : ''}`} />
-        </button>
-
-        {switcherOpen && (
-          <div className="mt-1 bg-gray-50 rounded-xl overflow-hidden">
-            {allWorkers.filter(w => w.id !== currentUserId).map(w => (
-              <button
-                key={w.id}
-                onClick={() => { logout(); setSwitcherOpen(false); navigate('/login') }}                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-white transition-colors text-left"
-              >
-                <div className="w-7 h-7 rounded-lg bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 shrink-0">
-                  {w.name.charAt(0)}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-gray-700 truncate">{w.name}</p>
-                  <p className="text-[11px] text-gray-400 truncate">{w.profession}</p>
-                </div>
-              </button>
-            ))}
-            <button
-              onClick={() => { setSwitcherOpen(false); navigate('/register') }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-white transition-colors text-left border-t border-gray-100"
-            >
-              <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                <UserPlus size={13} className="text-blue-500" />
-              </div>
-              <span className="text-xs font-medium text-gray-600">Add new account</span>
-            </button>
-          </div>
-        )}
-
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-50 group transition-colors mt-1"

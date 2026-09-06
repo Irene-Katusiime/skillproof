@@ -5,7 +5,7 @@ const navItems = [
   { to: '/dashboard', icon: Home,      label: 'Home'     },
   { to: '/passport',  icon: Award,     label: 'Passport' },
   { to: '/projects',  icon: Briefcase, label: 'Projects' },
-  { to: '/discover',  icon: Globe,     label: 'Discover' },
+  { to: '/opportunities', icon: Globe, label: 'Opportunities' },
   { to: '/endorse',   icon: UserCheck, label: 'Endorse'  },
 ]
 

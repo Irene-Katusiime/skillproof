@@ -25,7 +25,7 @@ export default function Login() {
     if (!email.trim() || password.length < 6) return
     setError(null)
     setLoading(true)
-    const result = loginWithPassword(email.trim(), password)
+    const result = loginWithPassword(email.trim(), password, 'worker')
     setLoading(false)
     if (result) {
       setError(result)
