@@ -10,6 +10,8 @@ import {
   LogOut,
   MapPin,
   CheckCircle2,
+  CalendarDays,
+  Banknote,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 
@@ -43,11 +45,6 @@ export default function EmployerDashboard() {
   const [requiredSkills, setRequiredSkills] = useState<string[]>([])
   const [skillInput, setSkillInput] = useState('')
 
-  // ─────────────────────────────────────────────────────────────
-  // Available skills
-  // Collect skills already used by workers so employers can
-  // select the same skill names workers have in their profiles.
-  // ─────────────────────────────────────────────────────────────
   const availableSkills = Array.from(
     new Set(
       allWorkers.flatMap(worker =>
@@ -62,9 +59,9 @@ export default function EmployerDashboard() {
     )
   ).sort((a, b) => a.localeCompare(b))
 
-  // ─────────────────────────────────────────────────────────────
-  // Load employer opportunities
-  // ─────────────────────────────────────────────────────────────
+  /*
+   * Load opportunities posted by this employer.
+   */
   useEffect(() => {
     if (!employer?.id) {
       setLoadingJobs(false)
@@ -104,13 +101,19 @@ export default function EmployerDashboard() {
     loadJobs()
   }, [employer?.id])
 
-  // ─────────────────────────────────────────────────────────────
-  // Search workers
-  // ─────────────────────────────────────────────────────────────
+  /*
+   * Search workers by:
+   * - name
+   * - profession
+   * - location
+   * - skills
+   */
   const workers = allWorkers.filter(worker => {
     const q = search.toLowerCase().trim()
 
-    if (!q) return true
+    if (!q) {
+      return true
+    }
 
     return [
       worker.name,
@@ -127,13 +130,15 @@ export default function EmployerDashboard() {
       .includes(q)
   })
 
-  // ─────────────────────────────────────────────────────────────
-  // Add required skill
-  // ─────────────────────────────────────────────────────────────
+  /*
+   * Add a required skill to the job.
+   */
   const addRequiredSkill = () => {
     const skill = skillInput.trim()
 
-    if (!skill) return
+    if (!skill) {
+      return
+    }
 
     const alreadySelected =
       requiredSkills.some(
@@ -152,9 +157,9 @@ export default function EmployerDashboard() {
     setSkillInput('')
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Remove required skill
-  // ─────────────────────────────────────────────────────────────
+  /*
+   * Remove a required skill.
+   */
   const removeRequiredSkill = (
     skillToRemove: string
   ) => {
@@ -165,9 +170,52 @@ export default function EmployerDashboard() {
     )
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Publish opportunity
-  // ─────────────────────────────────────────────────────────────
+  /*
+   * Format money as UGX.
+   */
+  const formatPay = (amount?: number) => {
+    if (
+      amount === undefined ||
+      amount === null ||
+      amount <= 0
+    ) {
+      return 'Not specified'
+    }
+
+    return `UGX ${amount.toLocaleString()}`
+  }
+
+  /*
+   * Format the deadline for display.
+   */
+  const formatDeadline = (
+    deadline?: string
+  ) => {
+    if (!deadline) {
+      return 'Not specified'
+    }
+
+    const date = new Date(
+      `${deadline}T00:00:00`
+    )
+
+    if (Number.isNaN(date.getTime())) {
+      return deadline
+    }
+
+    return date.toLocaleDateString(
+      'en-GB',
+      {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }
+    )
+  }
+
+  /*
+   * Publish a new opportunity.
+   */
   const postJob = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
@@ -180,6 +228,9 @@ export default function EmployerDashboard() {
       return
     }
 
+    /*
+     * Required skills validation.
+     */
     if (requiredSkills.length === 0) {
       setPostError(
         'Please select at least one required skill.'
@@ -187,45 +238,205 @@ export default function EmployerDashboard() {
       return
     }
 
-    const data = new FormData(e.currentTarget)
+    const data = new FormData(
+      e.currentTarget
+    )
+
+    const title = String(
+      data.get('title') || ''
+    ).trim()
+
+    const location = String(
+      data.get('location') || ''
+    ).trim()
+
+    const description = String(
+      data.get('description') || ''
+    ).trim()
+
+    const payMinRaw = String(
+      data.get('payMin') || ''
+    ).trim()
+
+    const payMaxRaw = String(
+      data.get('payMax') || ''
+    ).trim()
+
+    const deadline = String(
+      data.get('deadline') || ''
+    ).trim()
+
+    const payMin =
+      payMinRaw === ''
+        ? 0
+        : Number(payMinRaw)
+
+    const payMax =
+      payMaxRaw === ''
+        ? 0
+        : Number(payMaxRaw)
+
+    /*
+     * Basic form validation.
+     */
+    if (!title) {
+      setPostError(
+        'Please enter a job title.'
+      )
+      return
+    }
+
+    if (!location) {
+      setPostError(
+        'Please enter the job location.'
+      )
+      return
+    }
+
+    if (!description) {
+      setPostError(
+        'Please describe the opportunity.'
+      )
+      return
+    }
+
+    /*
+     * Pay validation.
+     */
+    if (
+      payMinRaw !== '' &&
+      (!Number.isFinite(payMin) ||
+        payMin < 0)
+    ) {
+      setPostError(
+        'Please enter a valid minimum pay amount.'
+      )
+      return
+    }
+
+    if (
+      payMaxRaw !== '' &&
+      (!Number.isFinite(payMax) ||
+        payMax < 0)
+    ) {
+      setPostError(
+        'Please enter a valid maximum pay amount.'
+      )
+      return
+    }
+
+    if (
+      payMin > 0 &&
+      payMax > 0 &&
+      payMax < payMin
+    ) {
+      setPostError(
+        'Maximum pay cannot be lower than minimum pay.'
+      )
+      return
+    }
+
+    /*
+     * Due date validation.
+     */
+    if (!deadline) {
+      setPostError(
+        'Please select a due date.'
+      )
+      return
+    }
+
+    const selectedDeadline = new Date(
+      `${deadline}T23:59:59`
+    )
+
+    if (
+      Number.isNaN(
+        selectedDeadline.getTime()
+      )
+    ) {
+      setPostError(
+        'Please select a valid due date.'
+      )
+      return
+    }
+
+    const today = new Date()
+    today.setHours(
+      0,
+      0,
+      0,
+      0
+    )
+
+    const deadlineDate = new Date(
+      `${deadline}T00:00:00`
+    )
+
+    if (deadlineDate < today) {
+      setPostError(
+        'Due date cannot be in the past.'
+      )
+      return
+    }
 
     try {
       setPosting(true)
       setPostError('')
 
+      /*
+       * Send the complete opportunity to
+       * the backend.
+       */
       const response = await fetch(
         '/api/opportunities',
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type':
+              'application/json',
           },
           body: JSON.stringify({
             employerId: employer.id,
-            title: data.get('title'),
-            location: data.get('location'),
-            description: data.get('description'),
+            title,
+            location,
+            description,
             skills: requiredSkills,
+            payMin,
+            payMax,
+            deadline,
           }),
         }
       )
 
-      const result = await response.json()
+      const result =
+        await response.json()
 
-      if (!response.ok || !result.success) {
+      if (
+        !response.ok ||
+        !result.success
+      ) {
         throw new Error(
           result.error ||
             'Failed to publish opportunity.'
         )
       }
 
+      /*
+       * Add the new job immediately to
+       * the employer dashboard.
+       */
       setJobs(prev => [
         result.opportunity,
         ...prev,
       ])
 
+      /*
+       * Reset form state.
+       */
       setRequiredSkills([])
       setSkillInput('')
+      setPostError('')
       setShowPost(false)
 
       e.currentTarget.reset()
@@ -244,9 +455,9 @@ export default function EmployerDashboard() {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Logout
-  // ─────────────────────────────────────────────────────────────
+  /*
+   * Employer logout.
+   */
   const logoutEmployer = () => {
     logout()
     navigate('/employer/login')
@@ -254,7 +465,7 @@ export default function EmployerDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ───────────────── HEADER ───────────────── */}
+      {/* HEADER */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -284,7 +495,8 @@ export default function EmployerDashboard() {
               </p>
 
               <p className="text-xs text-gray-400">
-                {employer?.contactName || ''}
+                {employer?.contactName ||
+                  ''}
               </p>
             </div>
 
@@ -299,9 +511,9 @@ export default function EmployerDashboard() {
         </div>
       </header>
 
-      {/* ───────────────── MAIN ───────────────── */}
+      {/* MAIN */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {/* Page heading */}
+        {/* PAGE INTRO */}
         <div className="mb-8">
           <p className="text-sm font-bold text-blue-600">
             EMPLOYER DASHBOARD
@@ -312,34 +524,42 @@ export default function EmployerDashboard() {
           </h2>
 
           <p className="text-gray-500 mt-1">
-            Search workers by skill, review their proof
-            and discover your next hire.
+            Search workers by skill, review
+            their proof and discover your next
+            hire.
           </p>
         </div>
 
-        {/* ───────────────── STATS ───────────────── */}
+        {/* STATS */}
         <div className="grid sm:grid-cols-3 gap-4 mb-8">
           {[
             {
               icon: Users,
-              value: allWorkers.length,
-              label: 'Available Workers',
+              value:
+                allWorkers.length,
+              label:
+                'Available Workers',
             },
+
             {
               icon: ShieldCheck,
-              value: allWorkers.filter(
-                worker =>
-                  worker.projects.some(
-                    project =>
-                      project.confirmed
-                  )
-              ).length,
-              label: 'Verified Talent',
+              value:
+                allWorkers.filter(
+                  worker =>
+                    worker.projects.some(
+                      project =>
+                        project.confirmed
+                    )
+                ).length,
+              label:
+                'Verified Talent',
             },
+
             {
               icon: Briefcase,
               value: jobs.length,
-              label: 'Your Opportunities',
+              label:
+                'Your Opportunities',
             },
           ].map(item => {
             const Icon = item.icon
@@ -366,9 +586,9 @@ export default function EmployerDashboard() {
           })}
         </div>
 
-        {/* ───────────────── CONTENT ───────────────── */}
+        {/* CONTENT */}
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* ───────────────── WORKERS ───────────────── */}
+          {/* WORKERS */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
               <div className="flex flex-col sm:flex-row gap-3 justify-between mb-5">
@@ -378,8 +598,8 @@ export default function EmployerDashboard() {
                   </h3>
 
                   <p className="text-sm text-gray-500">
-                    Search by profession, skill or
-                    location.
+                    Search by profession,
+                    skill or location.
                   </p>
                 </div>
 
@@ -394,7 +614,9 @@ export default function EmployerDashboard() {
                     placeholder="e.g. tailoring, mechanic..."
                     value={search}
                     onChange={e =>
-                      setSearch(e.target.value)
+                      setSearch(
+                        e.target.value
+                      )
                     }
                   />
                 </div>
@@ -414,24 +636,24 @@ export default function EmployerDashboard() {
                       className="border border-gray-100 rounded-2xl p-4 hover:border-blue-200 transition"
                     >
                       <div className="flex items-start gap-4">
-                        {/* Avatar */}
                         <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-xl font-black text-blue-600 shrink-0">
-                          {worker.name.charAt(0)}
+                          {worker.name.charAt(
+                            0
+                          )}
                         </div>
 
-                        {/* Worker information */}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <h4 className="font-bold text-gray-900">
                               {worker.name}
                             </h4>
 
-                            {confirmed > 0 && (
+                            {confirmed >
+                              0 && (
                               <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center gap-1">
                                 <CheckCircle2
                                   size={11}
                                 />
-
                                 Verified
                               </span>
                             )}
@@ -442,22 +664,28 @@ export default function EmployerDashboard() {
                           </p>
 
                           <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                            <MapPin size={11} />
+                            <MapPin
+                              size={11}
+                            />
 
                             {worker.location}
                           </p>
 
-                          {/* Worker skills */}
                           <div className="flex flex-wrap gap-1.5 mt-3">
                             {worker.skills
-                              .slice(0, 5)
+                              .slice(
+                                0,
+                                5
+                              )
                               .map(
                                 (
                                   skill: any,
                                   index: number
                                 ) => (
                                   <span
-                                    key={index}
+                                    key={
+                                      index
+                                    }
                                     className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full"
                                   >
                                     {typeof skill ===
@@ -470,7 +698,6 @@ export default function EmployerDashboard() {
                           </div>
                         </div>
 
-                        {/* Profile button */}
                         <button
                           onClick={() =>
                             navigate(
@@ -496,10 +723,9 @@ export default function EmployerDashboard() {
             </div>
           </div>
 
-          {/* ───────────────── OPPORTUNITIES ───────────────── */}
+          {/* OPPORTUNITIES */}
           <div>
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              {/* Opportunity header */}
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-black text-lg">
@@ -507,13 +733,16 @@ export default function EmployerDashboard() {
                   </h3>
 
                   <p className="text-xs text-gray-400">
-                    Post jobs for verified talent.
+                    Post jobs for verified
+                    talent.
                   </p>
                 </div>
 
                 <button
                   onClick={() => {
-                    setShowPost(prev => !prev)
+                    setShowPost(
+                      prev => !prev
+                    )
                     setPostError('')
                   }}
                   className="bg-blue-600 text-white p-2.5 rounded-xl hover:bg-blue-700 transition"
@@ -523,45 +752,63 @@ export default function EmployerDashboard() {
                 </button>
               </div>
 
-              {/* ───────────────── POST FORM ───────────────── */}
+              {/* POST FORM */}
               {showPost && (
                 <form
                   onSubmit={postJob}
-                  className="mt-5 space-y-3"
+                  className="mt-5 space-y-4"
                 >
-                  <input
-                    name="title"
-                    required
-                    className="input"
-                    placeholder="Job title"
-                  />
+                  {/* JOB TITLE */}
+                  <div>
+                    <label className="text-sm font-bold text-gray-700 block mb-1.5">
+                      Job Title
+                    </label>
 
-                  <input
-                    name="location"
-                    required
-                    className="input"
-                    placeholder="Location"
-                  />
+                    <input
+                      name="title"
+                      required
+                      className="input"
+                      placeholder="e.g. Wedding Photographer"
+                    />
+                  </div>
 
-                  {/* Required skills */}
+                  {/* LOCATION */}
+                  <div>
+                    <label className="text-sm font-bold text-gray-700 block mb-1.5">
+                      Location
+                    </label>
+
+                    <input
+                      name="location"
+                      required
+                      className="input"
+                      placeholder="e.g. Kampala, Uganda"
+                    />
+                  </div>
+
+                  {/* REQUIRED SKILLS */}
                   <div>
                     <label className="text-sm font-bold text-gray-700">
                       Required Skills
                     </label>
 
                     <p className="text-xs text-gray-400 mt-1 mb-2">
-                      Workers need at least 70% of
-                      these skills to see this
+                      Workers need at least
+                      70% of these skills
+                      to see this
                       opportunity.
                     </p>
 
                     <div className="flex gap-2">
                       <select
                         className="input flex-1"
-                        value={skillInput}
+                        value={
+                          skillInput
+                        }
                         onChange={e =>
                           setSkillInput(
-                            e.target.value
+                            e.target
+                              .value
                           )
                         }
                       >
@@ -578,33 +825,45 @@ export default function EmployerDashboard() {
                                   skill.toLowerCase()
                               )
                           )
-                          .map(skill => (
-                            <option
-                              key={skill}
-                              value={skill}
-                            >
-                              {skill}
-                            </option>
-                          ))}
+                          .map(
+                            skill => (
+                              <option
+                                key={
+                                  skill
+                                }
+                                value={
+                                  skill
+                                }
+                              >
+                                {skill}
+                              </option>
+                            )
+                          )}
                       </select>
 
                       <button
                         type="button"
-                        onClick={addRequiredSkill}
-                        disabled={!skillInput}
+                        onClick={
+                          addRequiredSkill
+                        }
+                        disabled={
+                          !skillInput
+                        }
                         className="px-4 bg-gray-100 rounded-xl font-bold text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Add
                       </button>
                     </div>
 
-                    {/* Selected skills */}
-                    {requiredSkills.length > 0 && (
+                    {requiredSkills.length >
+                      0 && (
                       <div className="flex flex-wrap gap-2 mt-3">
                         {requiredSkills.map(
                           skill => (
                             <span
-                              key={skill}
+                              key={
+                                skill
+                              }
                               className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full text-xs font-bold"
                             >
                               {skill}
@@ -628,22 +887,115 @@ export default function EmployerDashboard() {
                     )}
                   </div>
 
-                  {/* Description */}
-                  <textarea
-                    name="description"
-                    required
-                    className="input min-h-24"
-                    placeholder="Describe the opportunity..."
-                  />
+                  {/* ESTIMATED PAY */}
+                  <div>
+                    <label className="text-sm font-bold text-gray-700 block mb-1.5">
+                      Estimated Pay
+                    </label>
 
-                  {/* Error */}
-                  {postError && (
-                    <p className="text-sm text-red-600 font-medium">
-                      {postError}
+                    <p className="text-xs text-gray-400 mb-2">
+                      Enter the expected
+                      payment range in
+                      Ugandan Shillings.
                     </p>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="relative">
+                        <Banknote
+                          size={16}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
+
+                        <input
+                          name="payMin"
+                          type="number"
+                          min="0"
+                          step="1000"
+                          className="input pl-9"
+                          placeholder="Minimum"
+                        />
+                      </div>
+
+                      <div className="relative">
+                        <Banknote
+                          size={16}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
+
+                        <input
+                          name="payMax"
+                          type="number"
+                          min="0"
+                          step="1000"
+                          className="input pl-9"
+                          placeholder="Maximum"
+                        />
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      Example: 400000 –
+                      600000
+                    </p>
+                  </div>
+
+                  {/* DUE DATE */}
+                  <div>
+                    <label className="text-sm font-bold text-gray-700 block mb-1.5">
+                      Due Date
+                    </label>
+
+                    <div className="relative">
+                      <CalendarDays
+                        size={17}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                      />
+
+                      <input
+                        name="deadline"
+                        type="date"
+                        required
+                        min={
+                          new Date()
+                            .toISOString()
+                            .split(
+                              'T'
+                            )[0]
+                        }
+                        className="input pl-10"
+                      />
+                    </div>
+
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      Select the deadline
+                      for applications.
+                    </p>
+                  </div>
+
+                  {/* DESCRIPTION */}
+                  <div>
+                    <label className="text-sm font-bold text-gray-700 block mb-1.5">
+                      Opportunity Description
+                    </label>
+
+                    <textarea
+                      name="description"
+                      required
+                      className="input min-h-24"
+                      placeholder="Describe the opportunity..."
+                    />
+                  </div>
+
+                  {/* ERROR */}
+                  {postError && (
+                    <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
+                      <p className="text-sm text-red-600 font-medium">
+                        {postError}
+                      </p>
+                    </div>
                   )}
 
-                  {/* Submit */}
+                  {/* SUBMIT */}
                   <button
                     type="submit"
                     disabled={posting}
@@ -656,32 +1008,42 @@ export default function EmployerDashboard() {
                 </form>
               )}
 
-              {/* ───────────────── JOB LIST ───────────────── */}
+              {/* POSTED OPPORTUNITIES */}
               <div className="mt-5 space-y-3">
                 {loadingJobs ? (
                   <div className="text-center py-8 text-gray-400 text-sm">
-                    Loading your opportunities...
+                    Loading your
+                    opportunities...
                   </div>
-                ) : jobs.length > 0 ? (
+                ) : jobs.length >
+                  0 ? (
                   jobs.map(job => (
                     <div
                       key={job.id}
                       className="border border-gray-100 rounded-xl p-3"
                     >
+                      {/* TITLE */}
                       <p className="font-bold text-sm">
                         {job.title}
                       </p>
 
-                      <p className="text-xs text-gray-400 mt-1">
+                      {/* LOCATION */}
+                      <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                        <MapPin
+                          size={11}
+                        />
+
                         {job.location}
                       </p>
 
-                      {/* Required skills */}
+                      {/* SKILLS */}
                       <div className="flex flex-wrap gap-1.5 mt-3">
                         {job.skills?.map(
                           skill => (
                             <span
-                              key={skill}
+                              key={
+                                skill
+                              }
                               className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded-full font-semibold"
                             >
                               {skill}
@@ -690,14 +1052,62 @@ export default function EmployerDashboard() {
                         )}
                       </div>
 
-                      <p className="text-xs text-gray-500 mt-2">
-                        {job.description}
-                      </p>
+                      {/* PAY */}
+                      {(job.payMin ||
+                        job.payMax) ? (
+                        <div className="flex items-center gap-1.5 mt-3 text-xs text-gray-600">
+                          <Banknote
+                            size={13}
+                            className="text-green-600"
+                          />
+
+                          <span className="font-semibold">
+                            {job.payMin &&
+                            job.payMax
+                              ? `${formatPay(
+                                  job.payMin
+                                )} – ${formatPay(
+                                  job.payMax
+                                )}`
+                              : formatPay(
+                                  job.payMin ||
+                                    job.payMax
+                                )}
+                          </span>
+                        </div>
+                      ) : null}
+
+                      {/* DEADLINE */}
+                      {job.deadline && (
+                        <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-600">
+                          <CalendarDays
+                            size={13}
+                            className="text-orange-500"
+                          />
+
+                          <span>
+                            Due:{' '}
+                            <strong>
+                              {formatDeadline(
+                                job.deadline
+                              )}
+                            </strong>
+                          </span>
+                        </div>
+                      )}
+
+                      {/* DESCRIPTION */}
+                      {job.description && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          {job.description}
+                        </p>
+                      )}
                     </div>
                   ))
                 ) : (
                   <div className="text-center py-8 text-gray-400 text-sm">
-                    No opportunities posted yet.
+                    No opportunities
+                    posted yet.
                   </div>
                 )}
               </div>
