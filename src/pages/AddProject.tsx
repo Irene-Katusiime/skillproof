@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext'
 import PageHeader from '../components/PageHeader'
 import AudioRecorder from '../components/AudioRecorder'
 import VideoUploader from '../components/VideoUploader'
+import LiveFrameCapture, { type FrameCaptureResult } from '../components/LiveFrameCapture'
 
 const CATEGORIES = [
   'Custom Tailoring', 'African Print Design', 'Bridal Wear', 'Corporate Uniforms',
@@ -15,10 +16,11 @@ const CATEGORIES = [
 export default function AddProject() {
   const { addProject } = useApp()
   const navigate = useNavigate()
-  const [submitted,  setSubmitted]  = useState(false)
-  const [audioUrl,   setAudioUrl]   = useState<string | null>(null)
-  const [videoUrl,   setVideoUrl]   = useState<string | null>(null)
-  const [activeTab,  setActiveTab]  = useState<'text' | 'audio' | 'video'>('text')
+  const [submitted,    setSubmitted]    = useState(false)
+  const [audioUrl,     setAudioUrl]     = useState<string | null>(null)
+  const [videoUrl,     setVideoUrl]     = useState<string | null>(null)
+  const [framesResult, setFramesResult] = useState<FrameCaptureResult | null>(null)
+  const [activeTab,    setActiveTab]    = useState<'text' | 'audio' | 'video' | 'frames'>('text')
   const [form, setForm] = useState({
     title: '', description: '', clientName: '',
     clientContact: '', completedAt: '', category: '',
@@ -28,15 +30,15 @@ export default function AddProject() {
 
   // At least one description method must be used
   const hasDescription =
-    form.description.trim().length > 0 || audioUrl !== null || videoUrl !== null
+    form.description.trim().length > 0 || audioUrl !== null || videoUrl !== null || framesResult !== null
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!hasDescription) return
     addProject({
       ...form,
-      audioDescription: audioUrl   || undefined,
-      videoDescription: videoUrl   || undefined,
+      audioDescription: audioUrl  || undefined,
+      videoDescription: videoUrl  || undefined,
     })
     setSubmitted(true)
     setTimeout(() => navigate('/projects'), 1800)
@@ -55,9 +57,10 @@ export default function AddProject() {
   }
 
   const descTabs = [
-    { id: 'text',  icon: '✏️', label: 'Type',        done: form.description.trim().length > 0 },
-    { id: 'audio', icon: '🎤', label: 'Record Audio', done: audioUrl !== null },
-    { id: 'video', icon: '🎥', label: 'Record Video', done: videoUrl !== null },
+    { id: 'text',   icon: '✏️',  label: 'Type',             done: form.description.trim().length > 0 },
+    { id: 'audio',  icon: '🎤',  label: 'Record Audio',     done: audioUrl !== null },
+    { id: 'video',  icon: '🎥',  label: 'Record Video',     done: videoUrl !== null },
+    { id: 'frames', icon: '📸',  label: 'Live Verify',      done: framesResult !== null },
   ] as const
 
   return (
@@ -157,6 +160,26 @@ export default function AddProject() {
               </div>
             )}
 
+            {/* Live frame verification tab */}
+            {activeTab === 'frames' && (
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <span className="text-sm">📸</span>
+                  </div>
+                  <p className="text-sm font-semibold text-gray-700">Live session verification</p>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  Three quick snapshots — your face, your ID or credential, and your active work
+                  environment. Sends compressed frames directly to the server; no large video file needed.
+                </p>
+                <LiveFrameCapture
+                  onComplete={(result) => setFramesResult(result)}
+                  autoSend
+                />
+              </div>
+            )}
+
             {/* Summary of what's been filled */}
             <div className="flex flex-wrap gap-2 mt-3">
               {form.description.trim().length > 0 && (
@@ -167,6 +190,11 @@ export default function AddProject() {
               )}
               {videoUrl && (
                 <span className="badge-blue text-[11px]">✓ Video added</span>
+              )}
+              {framesResult && (
+                <span className="text-[11px] bg-purple-100 text-purple-700 font-semibold px-2.5 py-0.5 rounded-full">
+                  ✓ Live verification ({framesResult.blobs.length} frames)
+                </span>
               )}
             </div>
 

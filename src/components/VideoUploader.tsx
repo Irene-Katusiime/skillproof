@@ -19,6 +19,7 @@ export default function VideoUploader({ onSave, savedUrl }: Props) {
   const [mode,         setMode]         = useState<Mode>(savedUrl ? 'done' : 'choose')
   const [recState,     setRecState]     = useState<RecState>('idle')
   const [videoUrl,     setVideoUrl]     = useState<string | null>(savedUrl || null)
+  const [playbackUrl,  setPlaybackUrl]  = useState<string | null>(null)  // object URL for playback
   const [seconds,      setSeconds]      = useState(0)
   const [playing,      setPlaying]      = useState(false)
   const [errMsg,       setErrMsg]       = useState('')
@@ -85,6 +86,8 @@ export default function VideoUploader({ onSave, savedUrl }: Props) {
       setMode('done')
     }
     reader.readAsDataURL(file)
+    // Set object URL immediately for fast playback — no need to wait for FileReader
+    setPlaybackUrl(URL.createObjectURL(file))
   }
 
   // ── Open camera ───────────────────────────────────────────────────────────
@@ -131,6 +134,10 @@ export default function VideoUploader({ onSave, savedUrl }: Props) {
         return
       }
 
+      // Create a stable object URL for playback (much more reliable than base64 data URL)
+      const objUrl = URL.createObjectURL(blob)
+      setPlaybackUrl(objUrl)
+
       const reader = new FileReader()
       reader.onloadend = () => {
         const url = reader.result as string
@@ -164,7 +171,9 @@ export default function VideoUploader({ onSave, savedUrl }: Props) {
   }
 
   const clearVideo = () => {
+    if (playbackUrl) URL.revokeObjectURL(playbackUrl)
     setVideoUrl(null)
+    setPlaybackUrl(null)
     setMode('choose')
     setRecState('idle')
     setSeconds(0)
@@ -177,14 +186,26 @@ export default function VideoUploader({ onSave, savedUrl }: Props) {
     if (playbackRef.current) { playbackRef.current.pause(); playbackRef.current.removeAttribute('src') }
   }
 
+  // Wire playbackUrl to the video element as soon as it's available
+  useEffect(() => {
+    const el = playbackRef.current
+    if (!el) return
+    if (playbackUrl) {
+      el.src = playbackUrl
+      el.load()
+    } else {
+      el.removeAttribute('src')
+      el.load()
+    }
+  }, [playbackUrl])
+
   const togglePlay = () => {
     const el = playbackRef.current
-    if (!el || !videoUrl) return
+    if (!el || !playbackUrl) return
     if (playing) {
       el.pause()
       setPlaying(false)
     } else {
-      el.src = videoUrl
       el.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
     }
   }
