@@ -6,7 +6,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev:backend": "ts-node-dev --respawn --transpile-only --project tsconfig.backend.json src/server.ts",
     "dev:frontend": "vite",
     "build": "tsc -b && vite build",
     "build:backend": "tsc",

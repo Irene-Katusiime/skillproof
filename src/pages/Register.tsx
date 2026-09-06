@@ -10,14 +10,14 @@ const PROFESSIONS = [
   'Tailor & Fashion Designer', 'Mechanic', 'Electrician', 'Plumber',
   'Builder / Mason', 'Carpenter', 'Welder', 'Hair Stylist & Beauty',
   'Farmer & Agriculturalist', 'Cook / Chef', 'Graphic Designer',
-  'Photographer', 'Artisan / Craftsperson', 'Other',
+  'Photographer', 'Artisan / Craftsperson',
 ]
 
 const LOCATIONS = [
   'Nairobi, Kenya', 'Mombasa, Kenya', 'Kisumu, Kenya', 'Nakuru, Kenya',
   'Lagos, Nigeria', 'Abuja, Nigeria', 'Accra, Ghana', 'Kampala, Uganda',
   'Dar es Salaam, Tanzania', 'Kigali, Rwanda', 'Addis Ababa, Ethiopia',
-  'Johannesburg, South Africa', 'Cape Town, South Africa', 'Other',
+  'Johannesburg, South Africa', 'Cape Town, South Africa',
 ]
 
 type Step = 1 | 2 | 3 | 4

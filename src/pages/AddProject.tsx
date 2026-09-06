@@ -10,7 +10,7 @@ import LiveFrameCapture, { type FrameCaptureResult } from '../components/LiveFra
 const CATEGORIES = [
   'Custom Tailoring', 'African Print Design', 'Bridal Wear', 'Corporate Uniforms',
   'Electronics Repair', 'Plumbing', 'Construction', 'Beauty & Hair', 'Mechanics',
-  'Farming & Agriculture', 'Carpentry', 'Other',
+  'Farming & Agriculture', 'Carpentry',
 ]
 
 export default function AddProject() {

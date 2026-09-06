@@ -74,7 +74,6 @@ export default function FindOpportunities() {
 
         const params = new URLSearchParams({
           country,
-          trade,
           skills: skills.join(','),
         })
 
