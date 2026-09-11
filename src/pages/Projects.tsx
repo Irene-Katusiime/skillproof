@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { Plus, Briefcase, ShieldCheck, Calendar } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import PageHeader from '../components/PageHeader'
@@ -6,7 +7,9 @@ import StarRating from '../components/StarRating'
 import AudioPlayer from '../components/AudioPlayer'
 
 export default function Projects() {
-  const { profile } = useApp()
+  const { profile, createEndorsementRequest } = useApp()
+
+  const [generated, setGenerated] = useState<{ [projectId: string]: string }>({})
 
   return (
     <div>
@@ -77,13 +80,26 @@ export default function Projects() {
               </div>
             )}
 
-            {!project.confirmed && project.clientContact && (
-              <Link
-                to={`/endorse?projectId=${project.id}`}
-                className="block text-center text-xs font-semibold text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl py-2 transition-colors"
-              >
-                Request client confirmation →
-              </Link>
+            {!project.confirmed && (
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    const req = createEndorsementRequest({ projectId: project.id, clientName: project.clientName })
+                    const link = `${window.location.origin}/confirm/${req.token}`
+                    setGenerated(prev => ({ ...prev, [project.id]: link }))
+                    navigator.clipboard?.writeText(link).catch(() => {})
+                  }}
+                  className="block w-full text-center text-xs font-semibold text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl py-2 transition-colors"
+                >
+                  Generate confirmation link
+                </button>
+                {generated[project.id] && (
+                  <div className="flex items-center gap-2">
+                    <input readOnly value={generated[project.id]} className="input flex-1 text-xs" />
+                    <button onClick={() => navigator.clipboard?.writeText(generated[project.id])} className="btn-secondary px-3 py-2">Copy</button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         ))}

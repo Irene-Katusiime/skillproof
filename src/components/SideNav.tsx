@@ -1,15 +1,14 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Award, Briefcase, UserCheck, Mic2, LogOut, UserPlus, ChevronDown, Globe } from 'lucide-react'
+import { Home, Award, Briefcase, UserCheck, Mic2, LogOut, UserPlus, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 
 const navItems = [
-  { to: '/dashboard', icon: Home,      label: 'Dashboard' },
+  { to: '/dashboard', icon: Home,      label: 'Dashboard'     },
   { to: '/passport',  icon: Award,     label: 'Skill Passport' },
-  { to: '/projects',  icon: Briefcase, label: 'Projects' },
-  { to: '/discover',  icon: Globe,     label: 'Discover Talent' },
-  { to: '/endorse',   icon: UserCheck, label: 'Endorsements' },
-  { to: '/pitch',     icon: Mic2,      label: 'About SkillProof' },
+  { to: '/projects',  icon: Briefcase, label: 'Projects'       },
+  { to: '/endorse',   icon: UserCheck, label: 'Endorsements'   },
+  { to: '/pitch',     icon: Mic2,      label: 'About'          },
 ]
 
 export default function SideNav() {

@@ -31,10 +31,16 @@ export default function Login() {
       setError(result)
       if (result === 'invalid_credentials') setPassword('')
     } else {
-      const dest = !from || from === '/' || from === '/login' || from === '/register'
-        ? '/dashboard'
-        : from
-      navigate(dest, { replace: true })
+      // currentRole is updated synchronously in loginWithPassword
+      // read it from the credential that was just matched
+      const storedRole = localStorage.getItem('sp_current_role')
+      const publicRoutes = ['/', '/login', '/register', '/employer/register']
+      const safeDest = (!from || publicRoutes.includes(from)) ? null : from
+      if (storedRole === 'employer') {
+        navigate(safeDest ?? '/employer/dashboard', { replace: true })
+      } else {
+        navigate(safeDest ?? '/dashboard', { replace: true })
+      }
     }
   }
 
@@ -184,7 +190,11 @@ export default function Login() {
           <p className="text-center text-sm text-gray-500 mt-5">
             Don't have an account?{' '}
             <Link to="/register" className="text-orange-500 font-semibold hover:underline">
-              Create your Skill Passport
+              Register as a worker
+            </Link>
+            {' · '}
+            <Link to="/employer/register" className="text-blue-600 font-semibold hover:underline">
+              Register as employer
             </Link>
           </p>
         </div>

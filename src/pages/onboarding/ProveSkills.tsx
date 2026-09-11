@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Briefcase, CheckCircle2, ArrowRight, Plus, Star } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
@@ -39,15 +39,89 @@ export default function ProveSkills() {
   const [current, setCurrent] = useState(0)
   const [answers, setAnswers] = useState<number[]>([])
   const [selected, setSelected] = useState<number | null>(null)
-  const [form, setForm] = useState({ title: '', clientName: '', completedAt: '', category: '', description: '' })
+  const [form, setForm] = useState({ title: '', clientName: '', completedAt: '', category: '', description: '', videoDescription: '' })
+  const [recording, setRecording] = useState(false)
+  const [recordedUrl, setRecordedUrl] = useState<string | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
+  const recordedChunksRef = useRef<Blob[]>([])
+  const videoPreviewRef = useRef<HTMLVideoElement | null>(null)
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
   const projectValid = form.title && form.clientName && form.completedAt && form.category && form.description
 
   const handleAddProject = () => {
+    // include any recorded/uploaded video as base64 data URL in videoDescription
     addProject(form)
     setProjectAdded(true)
   }
+
+  // --- Video recording handlers ---
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      mediaStreamRef.current = stream
+      recordedChunksRef.current = []
+      const chooseMime = () => {
+        if (typeof MediaRecorder === 'undefined') return ''
+        const options = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8,opus', 'video/webm']
+        for (const o of options) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(o)) return o
+        return ''
+      }
+      const mime = chooseMime()
+      const mr = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream)
+      mr.ondataavailable = (e: BlobEvent) => { if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data) }
+      mr.onstop = async () => {
+        const blob = new Blob(recordedChunksRef.current, { type: recordedChunksRef.current[0]?.type || 'video/webm' })
+        if (recordedUrl) URL.revokeObjectURL(recordedUrl)
+        const url = URL.createObjectURL(blob)
+        setRecordedUrl(url)
+        // clear srcObject and set src to blob url for reliable preview
+        if (videoPreviewRef.current) {
+          try { videoPreviewRef.current.srcObject = null } catch (e) {}
+          videoPreviewRef.current.src = url
+          setTimeout(() => { videoPreviewRef.current?.play().catch(() => {}) }, 50)
+        }
+        // convert to base64 data URL
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const base64 = reader.result as string
+          setForm(f => ({ ...f, videoDescription: base64 }))
+        }
+        reader.readAsDataURL(blob)
+        mediaStreamRef.current?.getTracks().forEach(t => t.stop())
+        mediaStreamRef.current = null
+      }
+      mediaRecorderRef.current = mr
+      // attach preview
+      if (videoPreviewRef.current) videoPreviewRef.current.srcObject = stream
+      mr.start()
+      setRecording(true)
+    } catch (err) {
+      console.error('Could not start video recording', err)
+      alert('Could not access camera. Please allow camera access and try again.')
+    }
+  }
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop()
+    setRecording(false)
+  }
+
+  const handleVideoUpload = (file: File | null) => {
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    setRecordedUrl(url)
+    const reader = new FileReader()
+    reader.onloadend = () => setForm(f => ({ ...f, videoDescription: reader.result as string }))
+    reader.readAsDataURL(file)
+  }
+
+  useEffect(() => () => {
+    // cleanup object URLs and streams
+    if (recordedUrl) URL.revokeObjectURL(recordedUrl)
+    mediaStreamRef.current?.getTracks().forEach(t => t.stop())
+  }, [recordedUrl])
 
   const handleAnswer = (i: number) => {
     if (selected !== null) return
@@ -136,6 +210,27 @@ export default function ProveSkills() {
               <textarea className="input resize-none" rows={3}
                 placeholder="Describe the work you did for this client..."
                 value={form.description} onChange={e => set('description', e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Record or upload a short video (optional)</label>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  {!recording ? (
+                    <button onClick={startRecording} className="btn-secondary px-3 py-2">Start Recording</button>
+                  ) : (
+                    <button onClick={stopRecording} className="btn-secondary px-3 py-2 bg-red-500 text-white">Stop</button>
+                  )}
+                  <label className="btn-secondary px-3 py-2 cursor-pointer">
+                    Upload Video
+                    <input type="file" accept="video/*" className="hidden" onChange={e => handleVideoUpload(e.target.files?.[0] ?? null)} />
+                  </label>
+                  {form.videoDescription && <span className="text-xs text-green-600">Video attached</span>}
+                </div>
+
+                <div className="bg-gray-50 rounded-xl p-2">
+                  <video ref={el => (videoPreviewRef.current = el)} src={recordedUrl ?? undefined} controls className="w-full rounded-lg" />
+                </div>
+              </div>
             </div>
             <button onClick={handleAddProject} disabled={!projectValid}
               className="btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">

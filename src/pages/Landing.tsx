@@ -74,7 +74,7 @@ export default function Landing() {
                 <Link to="/register" className="btn-primary bg-white text-orange-600 hover:bg-orange-50 py-3.5 px-8 text-base font-bold flex items-center justify-center gap-2 shadow-lg">
                   Build My Skill Passport <ArrowRight size={18} />
                 </Link>
-                <Link to="/discover" className="py-3.5 px-8 text-base font-bold border-2 border-white/40 rounded-xl text-white hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                <Link to="/employer/register" className="py-3.5 px-8 text-base font-bold border-2 border-white/40 rounded-xl text-white hover:bg-white/10 transition-all flex items-center justify-center gap-2">
                   <Users size={18} /> I'm an Employer
                 </Link>
               </div>
@@ -215,7 +215,7 @@ export default function Landing() {
                 })}
               </div>
               <div className="mt-8">
-                <Link to="/discover" className="btn-primary bg-blue-600 hover:bg-blue-700 py-3 px-8 text-sm font-bold inline-flex items-center gap-2">
+                <Link to="/employer/register" className="btn-primary bg-blue-600 hover:bg-blue-700 py-3 px-8 text-sm font-bold inline-flex items-center gap-2">
                   Discover Talent <ArrowRight size={16} />
                 </Link>
               </div>

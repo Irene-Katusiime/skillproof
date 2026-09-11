@@ -135,6 +135,89 @@ export default function TellYourStory() {
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 
+  // --- Video recording for story (optional) ---
+  const [videoRecording, setVideoRecording] = useState(false)
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
+  const recordedChunksRef = useRef<Blob[]>([])
+  const videoPreviewRef = useRef<HTMLVideoElement | null>(null)
+
+  const startVideoRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      mediaStreamRef.current = stream
+      recordedChunksRef.current = []
+      // choose a supported mime type if available
+      const chooseMime = () => {
+        if (typeof MediaRecorder === 'undefined') return ''
+        const options = [
+          'video/webm;codecs=vp9',
+          'video/webm;codecs=vp8,opus',
+          'video/webm',
+        ]
+        for (const o of options) {
+          if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(o)) return o
+        }
+        return ''
+      }
+      const mime = chooseMime()
+      const mr = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream)
+      mr.ondataavailable = (e: BlobEvent) => { if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data) }
+      mr.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: recordedChunksRef.current[0]?.type || 'video/webm' })
+        // revoke previous url
+        if (videoUrl) URL.revokeObjectURL(videoUrl)
+        const url = URL.createObjectURL(blob)
+        setVideoUrl(url)
+        // clear any srcObject (camera stream) before setting blob url
+        if (videoPreviewRef.current) {
+          try { videoPreviewRef.current.srcObject = null } catch (e) { /* ignore */ }
+          videoPreviewRef.current.src = url
+          // attempt to autoplay preview
+          setTimeout(() => { videoPreviewRef.current?.play().catch(() => {}) }, 50)
+        }
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const base64 = reader.result as string
+          sessionStorage.setItem('sp_onboarding_story_video', base64)
+        }
+        reader.readAsDataURL(blob)
+        mediaStreamRef.current?.getTracks().forEach(t => t.stop())
+        mediaStreamRef.current = null
+      }
+      mediaRecorderRef.current = mr
+      if (videoPreviewRef.current) videoPreviewRef.current.srcObject = stream
+      mr.start()
+      setVideoRecording(true)
+    } catch (err) {
+      console.error('Video recording failed', err)
+      setVideoRecording(false)
+      alert('Could not access camera. Please allow camera access and try again.')
+    }
+  }
+
+  const stopVideoRecording = () => {
+    mediaRecorderRef.current?.stop()
+    setVideoRecording(false)
+  }
+
+  const handleVideoUpload = (file: File | null) => {
+    if (!file) return
+    // revoke previous url
+    if (videoUrl) URL.revokeObjectURL(videoUrl)
+    const url = URL.createObjectURL(file)
+    setVideoUrl(url)
+    const reader = new FileReader()
+    reader.onloadend = () => sessionStorage.setItem('sp_onboarding_story_video', reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  useEffect(() => () => {
+    if (videoUrl) URL.revokeObjectURL(videoUrl)
+    mediaStreamRef.current?.getTracks().forEach(t => t.stop())
+  }, [videoUrl])
+
   return (
     <OnboardingShell
       step={1}
@@ -268,6 +351,29 @@ export default function TellYourStory() {
                 <Sparkles size={11} /> Great detail!
               </span>
             )}
+          </div>
+        </div>
+
+        {/* ── Video recorder/upload for story (optional) ── */}
+        <div>
+          <label className="label">Record a short video about your work (optional)</label>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              {!videoRecording ? (
+                <button onClick={startVideoRecording} className="btn-secondary px-3 py-2">Start Recording</button>
+              ) : (
+                <button onClick={stopVideoRecording} className="btn-secondary px-3 py-2 bg-red-500 text-white">Stop Recording</button>
+              )}
+              <label className="btn-secondary px-3 py-2 cursor-pointer">
+                Upload Video
+                <input type="file" accept="video/*" className="hidden" onChange={e => handleVideoUpload(e.target.files?.[0] ?? null)} />
+              </label>
+              {videoUrl ? <span className="text-xs text-green-600">Video ready</span> : null}
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-2">
+              <video ref={el => (videoPreviewRef.current = el)} src={videoUrl ?? undefined} controls className="w-full rounded-lg" />
+            </div>
           </div>
         </div>
 

@@ -154,7 +154,7 @@ function HireModal({ workerName, onClose }: { workerName: string; onClose: () =>
 
 export default function TalentProfile() {
   const { id } = useParams<{ id: string }>()
-  const { allWorkers } = useApp()
+  const { allWorkers, isEmployer } = useApp()
   const navigate = useNavigate()
   const [showContact, setShowContact] = useState(false)
   const [showHire,    setShowHire]    = useState(false)
@@ -168,7 +168,10 @@ export default function TalentProfile() {
         <div className="text-5xl">🔍</div>
         <h2 className="text-xl font-bold text-gray-800">Worker not found</h2>
         <p className="text-sm text-gray-500">This Skill Passport may have been removed.</p>
-        <button onClick={() => navigate('/discover')} className="btn-primary mt-2">Back to Discover</button>
+        <button onClick={() => {
+          if (isEmployer) navigate('/employer/discover')
+          else navigate('/dashboard')
+        }} className="btn-primary mt-2">Back</button>
       </div>
     )
   }
@@ -186,9 +189,12 @@ export default function TalentProfile() {
 
       <div className="max-w-4xl mx-auto">
         {/* Back */}
-        <button onClick={() => navigate('/discover')}
+        <button onClick={() => {
+            if (isEmployer) navigate('/employer/discover')
+            else navigate('/dashboard')
+          }}
           className="flex items-center gap-2 text-sm text-gray-500 hover:text-orange-500 mb-5 transition-colors">
-          <ArrowLeft size={16} /> Back to Discover
+          <ArrowLeft size={16} /> Back
         </button>
 
         <div className="lg:grid lg:grid-cols-[320px_1fr] lg:gap-6 space-y-5 lg:space-y-0">

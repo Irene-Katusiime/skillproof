@@ -11,7 +11,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/projects/add': 'Add Project',
   '/skills/add':   'Add Skill',
   '/endorse':      'Client Endorsement',
-  '/discover':     'Discover Talent',
   '/pitch':        'About SkillProof',
 }
 
